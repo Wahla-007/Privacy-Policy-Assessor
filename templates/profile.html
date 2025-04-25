@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Privacy Policy Generator{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="section-title">
+        <h2>Your Profile</h2>
+    </div>
+    
+    <div class="profile-card">
+        <form method="POST" action="{{ url_for('profile') }}" class="profile-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="{{ user.username }}" disabled>
+                <small>Username cannot be changed</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" value="{{ user.name }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            </div>
+            
+            <div class="form-section-divider">
+                <h3>Change Password</h3>
+                <p>Leave blank if you don't want to change your password</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">New Password</label>
+                <input type="password" id="password" name="password">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password">
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordField = document.getElementById('password');
+        const confirmField = document.getElementById('confirm_password');
+        const form = document.querySelector('.profile-form');
+        
+        form.addEventListener('submit', function(event) {
+            if (passwordField.value || confirmField.value) {
+                if (passwordField.value !== confirmField.value) {
+                    event.preventDefault();
+                    alert('Passwords do not match!');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ policy.website_name }} - Privacy Policy Generator{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h2 class="card-title mb-0">{{ policy.website_name }} Privacy Policy</h2>
+            <div>
+                <button class="btn btn-primary me-2" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Print
+                </button>
+                <a href="{{ url_for('my_policies') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Policies
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="mb-4">
+            <p><strong>Website:</strong> {{ policy.website_url }}</p>
+            <p><strong>Company:</strong> {{ policy.company_name }}</p>
+            <p><strong>Last Updated:</strong> {{ policy.last_updated.strftime('%B %d, %Y') }}</p>
+            
+            <div class="mb-3">
+                {% if policy.gdpr_compliant %}
+                <span class="badge bg-success me-1">GDPR Compliant</span>
+                {% endif %}
+                
+                {% if policy.ccpa_compliant %}
+                <span class="badge bg-info me-1">CCPA Compliant</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="policy-content">
+            {{ policy.content | markdown }}
+        </div>
+    </div>
+</div>
+{% endblock %}

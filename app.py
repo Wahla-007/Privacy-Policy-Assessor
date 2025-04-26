@@ -1,25 +1,32 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
-import conn
+# app.py
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
-import io
+from datetime import datetime, timedelta
 from functools import wraps
-import json
-import datetime
+from pymongo import MongoClient
 from bson.objectid import ObjectId
+# import markdown
+from markupsafe import Markup
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Change this to a random string in production
+app.secret_key = os.urandom(24)
+app.permanent_session_lifetime = timedelta(days=7)
 
-# Custom JSON encoder to handle ObjectId and datetime
-class MongoJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            return obj.isoformat()
-        if isinstance(obj, ObjectId):
-            return str(obj)
-        return super(MongoJSONEncoder, self).default(obj)
+# MongoDB connection
+client = MongoClient('mongodb://localhost:27017/')
+db = client['privacy_policy_generator']
+users_collection = db['users']
+policies_collection = db['policies']
 
-app.json_encoder = MongoJSONEncoder
+# Ensure indexes
+users_collection.create_index("username", unique=True)
+users_collection.create_index("email", unique=True)
+
+# Custom markdown filter
+@app.template_filter('markdown')
+def render_markdown(text):
+    return Markup(markdown.markdown(text))
 
 # Login required decorator
 def login_required(f):
@@ -35,19 +42,78 @@ def login_required(f):
 def index():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return render_template('index.html')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        name = request.form.get('name')
+        email = request.form.get('email')
+        
+        # Validate input
+        if not all([username, password, confirm_password, name, email]):
+            flash('All fields are required', 'error')
+            return render_template('signup.html')
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return render_template('signup.html')
+        
+        # Check if username exists
+        if users_collection.find_one({"username": username}):
+            flash('Username already exists', 'error')
+            return render_template('signup.html')
+        
+        # Check if email exists
+        if users_collection.find_one({"email": email}):
+            flash('Email already exists', 'error')
+            return render_template('signup.html')
+        
+        # Create new user
+        new_user = {
+            "username": username,
+            "password": generate_password_hash(password),
+            "name": name,
+            "email": email,
+            "created_at": datetime.utcnow(),
+            "last_login": datetime.utcnow()
+        }
+        
+        result = users_collection.insert_one(new_user)
+        
+        if result.inserted_id:
+            flash('Account created successfully! Please log in.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('Something went wrong. Please try again.', 'error')
+    
+    return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        remember = request.form.get('remember') == 'on'
         
-        success, user = conn.validate_user(username, password)
-        if success:
-            session['user_id'] = str(user['_id'])
-            session['username'] = user['username']
-            session['name'] = user['name']
+        user = users_collection.find_one({"username": username})
+        
+        if user and check_password_hash(user["password"], password):
+            # Update last login
+            users_collection.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"last_login": datetime.utcnow()}}
+            )
+            
+            # Set session
+            session.permanent = remember
+            session['user_id'] = str(user["_id"])
+            session['username'] = user["username"]
+            session['name'] = user["name"]
+            
             flash('Login successful!', 'success')
             return redirect(url_for('dashboard'))
         else:
@@ -55,296 +121,201 @@ def login():
     
     return render_template('login.html')
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        name = request.form.get('name')
-        email = request.form.get('email')
-        
-        success, message = conn.create_user(username, password, name, email)
-        if success:
-            flash('Account created successfully! Please log in.', 'success')
-            return redirect(url_for('login'))
-        else:
-            flash(message, 'error')
-    
-    return render_template('signup.html')
-
 @app.route('/logout')
 def logout():
-    session.clear()
-    flash('You have been logged out', 'info')
+    session.pop('user_id', None)
+    session.pop('username', None)
+    session.pop('name', None)
+    flash('You have been logged out', 'success')
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    user_id = session['user_id']
-    policies = conn.get_user_policies(user_id)
-    return render_template('dashboard.html', policies=policies)
-
-@app.route('/profile', methods=['GET', 'POST'])
-@login_required
-def profile():
-    user_id = session['user_id']
-    user = conn.get_user(user_id)
+    user_id = session.get('user_id')
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
     
-    if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        if password and len(password.strip()) > 0:
-            conn.update_user_profile(user_id, name, email, password)
-        else:
-            conn.update_user_profile(user_id, name, email)
-        
-        session['name'] = name
-        flash('Profile updated successfully', 'success')
-        return redirect(url_for('profile'))
+    # Get count of user's policies
+    policy_count = policies_collection.count_documents({"user_id": user_id})
     
-    return render_template('profile.html', user=user)
+    return render_template('dashboard.html', user=user, policy_count=policy_count)
 
-@app.route('/policy/new', methods=['GET', 'POST'])
+@app.route('/create-policy', methods=['GET', 'POST'])
 @login_required
-def new_policy():
+def create_policy():
     if request.method == 'POST':
-        # Extract form data
+        # Get form data
         website_name = request.form.get('website_name')
         website_url = request.form.get('website_url')
-        data_collected = request.form.getlist('data_collected')
-        third_party_sharing = request.form.get('third_party_sharing') == 'yes'
+        company_name = request.form.get('company_name')
+        contact_email = request.form.get('contact_email')
         
-        # Calculate GDPR and CCPA compliance
-        gdpr_compliant = evaluate_gdpr_compliance(request.form)
-        ccpa_compliant = evaluate_ccpa_compliance(request.form)
+        # Compliance options
+        gdpr_compliant = request.form.get('gdpr_compliant') == 'on'
+        ccpa_compliant = request.form.get('ccpa_compliant') == 'on'
         
-        # Calculate vulnerability score
-        vulnerability_score = calculate_vulnerability_score(request.form)
+        # Data collection options
+        collects_personal_info = request.form.get('collects_personal_info') == 'on'
+        collects_cookies = request.form.get('collects_cookies') == 'on'
+        shares_data = request.form.get('shares_data') == 'on'
+        uses_analytics = request.form.get('uses_analytics') == 'on'
         
-        # Generate policy text
-        policy_text = generate_privacy_policy(
-            website_name, 
-            website_url, 
-            data_collected, 
-            third_party_sharing, 
-            gdpr_compliant, 
-            ccpa_compliant,
-            request.form
+        # Create policy document
+        policy_content = generate_privacy_policy(
+            website_name, website_url, company_name, contact_email,
+            gdpr_compliant, ccpa_compliant, collects_personal_info,
+            collects_cookies, shares_data, uses_analytics
         )
         
-        # Save policy
-        policy_id = conn.create_policy(
-            session['user_id'],
-            website_name,
-            website_url,
-            data_collected,
-            third_party_sharing,
-            gdpr_compliant,
-            ccpa_compliant,
-            vulnerability_score,
-            policy_text
-        )
+        # Save policy to database
+        new_policy = {
+            "user_id": session.get('user_id'),
+            "website_name": website_name,
+            "website_url": website_url,
+            "company_name": company_name,
+            "content": policy_content,
+            "created_at": datetime.utcnow(),
+            "last_updated": datetime.utcnow(),
+            "gdpr_compliant": gdpr_compliant,
+            "ccpa_compliant": ccpa_compliant
+        }
         
-        flash('Privacy policy generated successfully', 'success')
-        return redirect(url_for('view_policy', policy_id=policy_id))
+        result = policies_collection.insert_one(new_policy)
+        
+        if result.inserted_id:
+            flash('Privacy policy created successfully!', 'success')
+            return redirect(url_for('view_policy', policy_id=str(result.inserted_id)))
+        else:
+            flash('Something went wrong. Please try again.', 'error')
     
-    return render_template('policy_generator.html')
+    return render_template('create_policy.html')
+
+@app.route('/my-policies')
+@login_required
+def my_policies():
+    user_id = session.get('user_id')
+    policies = policies_collection.find({"user_id": user_id}).sort("created_at", -1)
+    return render_template('my_policies.html', policies=policies)
 
 @app.route('/policy/<policy_id>')
 @login_required
 def view_policy(policy_id):
-    policy = conn.get_policy(policy_id)
-    if not policy or str(policy['user_id']) != session['user_id']:
-        flash('Policy not found or access denied', 'error')
-        return redirect(url_for('dashboard'))
+    user_id = session.get('user_id')
+    policy = policies_collection.find_one({"_id": ObjectId(policy_id), "user_id": user_id})
     
-    return render_template('policy_view.html', policy=policy)
+    if not policy:
+        flash('Policy not found or you do not have permission to view it', 'error')
+        return redirect(url_for('my_policies'))
+    
+    return render_template('view_policy.html', policy=policy)
 
-@app.route('/policy/<policy_id>/download')
-@login_required
-def download_policy(policy_id):
-    policy = conn.get_policy(policy_id)
-    if not policy or str(policy['user_id']) != session['user_id']:
-        flash('Policy not found or access denied', 'error')
-        return redirect(url_for('dashboard'))
+def generate_privacy_policy(website_name, website_url, company_name, contact_email,
+                          gdpr_compliant, ccpa_compliant, collects_personal_info,
+                          collects_cookies, shares_data, uses_analytics):
+    """Generate a privacy policy based on provided information"""
     
-    # Create policy text file
-    policy_text = policy['policy_text']
-    filename = f"{policy['website_name'].replace(' ', '_').lower()}_privacy_policy.txt"
-    
-    # Return file for download
-    return send_file(
-        io.BytesIO(policy_text.encode('utf-8')),
-        mimetype='text/plain',
-        as_attachment=True,
-        download_name=filename
-    )
+    # Base policy content
+    policy = f"""# Privacy Policy for {website_name}
 
-@app.route('/policy/<policy_id>/delete', methods=['POST'])
-@login_required
-def delete_policy(policy_id):
-    policy = conn.get_policy(policy_id)
-    if not policy or str(policy['user_id']) != session['user_id']:
-        flash('Policy not found or access denied', 'error')
-        return redirect(url_for('dashboard'))
-    
-    conn.delete_policy(policy_id)
-    flash('Privacy policy deleted successfully', 'success')
-    return redirect(url_for('dashboard'))
+## Last Updated: {datetime.now().strftime('%B %d, %Y')}
 
-# Helper functions for policy generation
-def evaluate_gdpr_compliance(form_data):
-    # Logic to evaluate GDPR compliance based on responses
-    compliant = True
-    
-    # Example checks (these would be more comprehensive in a real application)
-    if 'consent_mechanism' not in form_data or form_data['consent_mechanism'] != 'explicit':
-        compliant = False
-    
-    if 'data_retention' not in form_data or form_data['data_retention'] == 'indefinite':
-        compliant = False
-    
-    if 'user_rights' not in form_data or 'right_to_erasure' not in form_data.getlist('user_rights'):
-        compliant = False
-        
-    return compliant
+### Introduction
 
-def evaluate_ccpa_compliance(form_data):
-    # Logic to evaluate CCPA compliance based on responses
-    compliant = True
-    
-    # Example checks
-    if 'opt_out_option' not in form_data or form_data['opt_out_option'] != 'yes':
-        compliant = False
-    
-    if 'data_sale' in form_data and form_data['data_sale'] == 'yes' and 'do_not_sell' not in form_data:
-        compliant = False
-        
-    return compliant
+Welcome to {website_name}. This Privacy Policy explains how {company_name} ("we", "us", or "our") collects, uses, and discloses your information when you use our website {website_url} (the "Service").
 
-def calculate_vulnerability_score(form_data):
-    # Calculate vulnerability score (0-100)
-    # Higher scores mean better security/privacy practices
-    score = 50  # Start with a neutral score
-    
-    # Data minimization
-    if 'data_minimization' in form_data and form_data['data_minimization'] == 'yes':
-        score += 10
-    
-    # Encryption
-    if 'encryption' in form_data:
-        if form_data['encryption'] == 'all':
-            score += 15
-        elif form_data['encryption'] == 'partial':
-            score += 7
-    
-    # Data retention
-    if 'data_retention' in form_data:
-        if form_data['data_retention'] == 'specific_purpose':
-            score += 10
-        elif form_data['data_retention'] == 'limited_time':
-            score += 5
-    
-    # Third-party sharing
-    if 'third_party_sharing' in form_data and form_data['third_party_sharing'] == 'no':
-        score += 15
-    
-    # Data breach procedure
-    if 'breach_procedure' in form_data and form_data['breach_procedure'] == 'yes':
-        score += 10
-    
-    # Children's data
-    if 'collects_children_data' in form_data and form_data['collects_children_data'] == 'no':
-        score += 10
-    
-    # Ensure score is within bounds
-    return max(0, min(score, 100))
+We respect your privacy and are committed to protecting your personal data. Please read this Privacy Policy carefully to understand how we handle your information.
 
-def generate_privacy_policy(website_name, website_url, data_collected, third_party_sharing, gdpr_compliant, ccpa_compliant, form_data):
-    # Generate a tailored privacy policy based on responses
-    policy = f"""PRIVACY POLICY FOR {website_name.upper()}
+### Information We Collect
 
-Last Updated: {datetime.datetime.now().strftime('%B %d, %Y')}
-
-1. INTRODUCTION
-
-Welcome to {website_name} ({website_url}). We respect your privacy and are committed to protecting your personal data. This Privacy Policy will inform you about how we look after your personal data when you visit our website and tell you about your privacy rights and how the law protects you.
-
-2. DATA WE COLLECT
-
-We collect the following types of information:
 """
+    
+    # Add sections based on collected information
+    if collects_personal_info:
+        policy += """We may collect personal information that you provide directly to us, such as:
+- Name
+- Email address
+- Phone number
+- Billing and shipping address
+- Payment information
+- Any other information you choose to provide
 
-    # Add data collected
-    for data_type in data_collected:
-        policy += f"- {data_type}\n"
-    
-    # Third-party sharing
-    policy += "\n3. SHARING YOUR INFORMATION\n\n"
-    if third_party_sharing:
-        policy += "We share your personal information with selected third parties to help us provide our services. These third parties are required to respect the security of your personal data and to treat it in accordance with the law.\n"
+"""
     else:
-        policy += "We do not share your personal information with any third parties except where required by law.\n"
+        policy += """We do not collect personally identifiable information unless you voluntarily provide it to us.
+
+"""
     
-    # User rights
-    policy += "\n4. YOUR RIGHTS\n\n"
-    policy += "You have the right to:\n"
-    policy += "- Access your personal data\n"
-    policy += "- Request correction of your personal data\n"
+    if collects_cookies:
+        policy += """### Cookies and Tracking Technologies
+
+We use cookies and similar tracking technologies to track activity on our Service and hold certain information. Cookies are files with a small amount of data which may include an anonymous unique identifier.
+
+You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you do not accept cookies, you may not be able to use some portions of our Service.
+
+"""
     
-    if 'user_rights' in form_data:
-        if 'right_to_erasure' in form_data.getlist('user_rights'):
-            policy += "- Request erasure of your personal data\n"
-        if 'data_portability' in form_data.getlist('user_rights'):
-            policy += "- Request the transfer of your personal data\n"
-        if 'restrict_processing' in form_data.getlist('user_rights'):
-            policy += "- Object to processing of your personal data\n"
+    if uses_analytics:
+        policy += """### Analytics
+
+We may use third-party Service Providers to monitor and analyze the use of our Service, such as:
+- Google Analytics
+- Facebook Pixel
+- Other analytics services
+
+"""
     
-    # Data security
-    policy += "\n5. DATA SECURITY\n\n"
-    if 'encryption' in form_data:
-        if form_data['encryption'] == 'all':
-            policy += "We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used or accessed in an unauthorized way, altered or disclosed. All data is encrypted both in transit and at rest.\n"
-        elif form_data['encryption'] == 'partial':
-            policy += "We have put in place security measures to protect your personal data. Sensitive information is encrypted during transmission.\n"
-        else:
-            policy += "We have put in place basic security measures to protect your personal data.\n"
+    if shares_data:
+        policy += """### Sharing Your Information
+
+We may share your personal information with:
+- Service providers who perform services on our behalf
+- Business partners with whom we jointly offer products or services
+- As required by law or to comply with legal process
+- To protect and defend our rights and property
+
+"""
     
-    # Retention period
-    policy += "\n6. DATA RETENTION\n\n"
-    if 'data_retention' in form_data:
-        if form_data['data_retention'] == 'specific_purpose':
-            policy += "We will only retain your personal data for as long as necessary to fulfill the purposes for which we collected it.\n"
-        elif form_data['data_retention'] == 'limited_time':
-            policy += "We will retain your personal data for a limited period as specified in our internal policies.\n"
-        else:
-            policy += "We retain your personal data in accordance with our internal policies.\n"
-    
-    # Children's privacy
-    policy += "\n7. CHILDREN'S PRIVACY\n\n"
-    if 'collects_children_data' in form_data and form_data['collects_children_data'] == 'yes':
-        policy += "Our service may collect data from children under 13 with parental consent. We implement additional protections to ensure compliance with applicable laws like COPPA.\n"
-    else:
-        policy += "Our service is not directed at children under 13. We do not knowingly collect personal data from children under 13.\n"
-    
-    # Compliance information
-    policy += "\n8. REGULATORY COMPLIANCE\n\n"
+    # Add compliance sections
     if gdpr_compliant:
-        policy += "This privacy policy is designed to comply with the General Data Protection Regulation (GDPR).\n"
-    else:
-        policy += "This privacy policy may not fully comply with all requirements of the General Data Protection Regulation (GDPR).\n"
+        policy += f"""### GDPR Compliance
+
+For users in the European Union (EU) and European Economic Area (EEA), we process your data in accordance with the General Data Protection Regulation (GDPR). You have the following rights:
+- Right to access your personal data
+- Right to rectification if your data is inaccurate or incomplete
+- Right to erasure (right to be forgotten)
+- Right to restrict processing
+- Right to data portability
+- Right to object to processing
+- Rights in relation to automated decision making and profiling
+
+To exercise these rights, please contact us at {contact_email}.
+
+"""
     
     if ccpa_compliant:
-        policy += "This privacy policy is designed to comply with the California Consumer Privacy Act (CCPA).\n"
-    else:
-        policy += "This privacy policy may not fully comply with all requirements of the California Consumer Privacy Act (CCPA).\n"
+        policy += f"""### CCPA Compliance
+
+For California residents, the California Consumer Privacy Act (CCPA) provides you with specific rights regarding your personal information. You have the right to:
+- Know what personal information is being collected about you
+- Know whether your personal information is sold or disclosed and to whom
+- Opt out of the sale of your personal information
+- Access your personal information
+- Request deletion of your personal information
+- Not be discriminated against for exercising your CCPA rights
+
+To exercise these rights, please contact us at {contact_email}.
+
+"""
     
     # Contact information
-    policy += "\n9. CONTACT US\n\n"
-    policy += f"If you have any questions about this Privacy Policy, please contact us at [CONTACT EMAIL] or visit {website_url}.\n"
+    policy += f"""### Contact Us
+
+If you have any questions about this Privacy Policy, please contact us at:
+- Email: {contact_email}
+- Website: {website_url}
+- Company: {company_name}
+
+"""
     
     return policy
 

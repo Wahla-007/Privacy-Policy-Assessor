@@ -1,0 +1,160 @@
+:root {
+  --dark-bg: #121212;
+  --dark-surface: #1e1e1e;
+  --dark-primary: #4f78ff;
+  --dark-secondary: #03dac6;
+  --dark-error: #cf6679;
+  --dark-success: #00b894;
+  --dark-text: #e0e0e0;
+  --dark-text-secondary: #a0a0a0;
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+  min-height: 100vh;
+}
+
+.navbar {
+  background-color: var(--dark-surface) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.navbar-brand, .nav-link {
+  color: var(--dark-text) !important;
+}
+
+.card {
+  background-color: var(--dark-surface);
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary {
+  background-color: var(--dark-primary);
+  border: none;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: #6382ff;
+}
+
+.form-control, .form-select {
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  color: var(--dark-text);
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: #333;
+  border-color: var(--dark-primary);
+  color: var(--dark-text);
+  box-shadow: 0 0 0 0.25rem rgba(79, 120, 255, 0.25);
+}
+
+.alert-success {
+  background-color: var(--dark-success);
+  color: #fff;
+  border: none;
+}
+
+.alert-danger {
+  background-color: var(--dark-error);
+  color: #fff;
+  border: none;
+}
+
+.auth-container {
+  max-width: 500px;
+  margin: 40px auto;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-logo {
+  font-size: 2.5rem;
+  color: var(--dark-primary);
+  margin-bottom: 10px;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 20px;
+  color: var(--dark-text-secondary);
+}
+
+.auth-switch {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.auth-switch a {
+  color: var(--dark-primary);
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+.dashboard-stats {
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 20px;
+  transition: transform 0.3s ease;
+}
+
+.dashboard-stats:hover {
+  transform: translateY(-5px);
+}
+
+.policy-card {
+  transition: transform 0.3s ease;
+}
+
+.policy-card:hover {
+  transform: translateY(-5px);
+}
+
+.form-floating > .form-control {
+  background-color: #2d2d2d;
+  border-color: #444;
+  color: var(--dark-text);
+}
+
+.form-floating > .form-control:focus {
+  background-color: #333;
+  border-color: var(--dark-primary);
+}
+
+.form-floating > label {
+  color: var(--dark-text-secondary);
+}
+
+.custom-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.custom-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--dark-primary), var(--dark-secondary));
+}
+
+.form-check-input {
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+}
+
+.form-check-input:checked {
+  background-color: var(--dark-primary);
+  border-color: var(--dark-primary);
+}

@@ -1,28 +1,74 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block title %}Login - Privacy Policy Generator{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <div class="auth-card">
-        <h2>Login</h2>
-        <form method="POST" action="{{ url_for('login') }}" class="auth-form">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
+<div class="auth-container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="card p-4" style="background-color: #2c2f33; border: none; border-radius: 10px; width: 100%; max-width: 400px;">
+        <div class="auth-header text-center">
+            <div class="auth-logo mb-3">
+                <img src="{{ url_for('static', filename='img/favicon.png') }}" alt="Favicon" style="width: 200px; height: 200px; object-fit: contain;">
             </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+        </div>
+        
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="mb-3">
+                <label for="username" class="form-label" style="color: #99aab5; text-transform: uppercase; font-size: 0.75rem;">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required style="background-color: rgba(255, 255, 255, 0.1); border: none; border-radius: 5px; padding: 10px; color: #ffffff; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);">
             </div>
-            
-            <button type="submit" class="btn btn-primary">Login</button>
+            <div class="mb-3">
+                <label for="password" class="form-label" style="color: #99aab5; text-transform: uppercase; font-size: 0.75rem;">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required style="background-color: rgba(255, 255, 255, 0.1); border: none; border-radius: 5px; padding: 10px; color: #ffffff; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);">
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="remember" name="remember" style="border-color: #99aab5;">
+                <label class="form-check-label" for="remember" style="color: #99aab5;">Remember me</label>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary" style="background-color: #7289da; border: none; border-radius: 5px; padding: 10px; text-transform: uppercase; font-weight: 500;">Login</button>
+            </div>
         </form>
         
-        <div class="auth-footer">
-            <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
+        <div class="auth-switch text-center mt-3">
+            <span style="color: #99aab5;">Don't have an account? </span>
+            <a href="{{ url_for('signup') }}" style="color: #7289da; text-decoration: none;">Sign up</a>
         </div>
     </div>
 </div>
+
+<style>
+    /* Ensure the body has a dark background to match the screenshot */
+    body {
+        background-color: #1e2124;
+    }
+
+    /* Center the auth container vertically and horizontally */
+    .auth-container {
+        padding: 20px;
+    }
+
+    /* Style the card to match the screenshot's dark theme */
+    .card {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Style the form inputs to match the frosted glass effect */
+    .form-control {
+        color: #ffffff !important; /* Ensure text color is white */
+    }
+
+    .form-control::placeholder {
+        color: #99aab5; /* Placeholder text color */
+    }
+
+    /* Style the checkbox to match the screenshot */
+    .form-check-input {
+        background-color: transparent;
+    }
+
+    /* Style the button to match the screenshot */
+    .btn-primary:hover {
+        background-color: #5c6bc0;
+    }
+</style>
 {% endblock %}

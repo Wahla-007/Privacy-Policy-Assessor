@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Policy - Privacy Policy Generator{% endblock %}
+
+{% block content %}
+<div class="policy-creator-header my-5 text-center">
+    <h1>Create Your Privacy Policy</h1>
+    <p class="lead text-secondary mb-5">Complete the form below to generate a professional privacy policy for your website.</p>
+</div>
+
+<div class="card custom-card policy-creator-card mb-5">
+    <div class="card-body p-4 p-lg-5">
+        <form method="POST" action="{{ url_for('create_policy') }}">
+            <div class="progress-tracker mb-5">
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="progress-steps mt-3 d-flex justify-content-between">
+                    <div class="progress-step active" data-section="website-info">
+                        <div class="step-icon">1</div>
+                        <div class="step-label">Website Info</div>
+                    </div>
+                    <div class="progress-step" data-section="compliance">
+                        <div class="step-icon">2</div>
+                        <div class="step-label">Compliance</div>
+                    </div>
+                    <div class="progress-step" data-section="data-collection">
+                        <div class="step-icon">3</div>
+                        <div class="step-label">Data Collection</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section active" id="website-info">
+                <h4 class="section-title mb-4"><i class="fas fa-globe me-2"></i>Website Information</h4>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-4">
+                            <input type="text" class="form-control" id="website_name" name="website_name" placeholder="Website Name" required>
+                            <label for="website_name">Website Name</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-4">
+                            <input type="url" class="form-control" id="website_url" name="website_url" placeholder="Website URL" required>
+                            <label for="website_url">Website URL</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-4">
+                            <input type="text" class="form-control" id="company_name" name="company_name" placeholder="Company Name" required>
+                            <label for="company_name">Company Name</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-4">
+                            <input type="email" class="form-control" id="contact_email" name="contact_email" placeholder="Contact Email" required>
+                            <label for="contact_email">Contact Email</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-navigation mt-5 d-flex justify-content-end">
+                    <button type="button" class="btn btn-primary btn-lg btn-next px-4">Next <i class="fas fa-arrow-right ms-2"></i></button>
+                </div>
+            </div>
+            
+            <div class="form-section" id="compliance">
+                <h4 class="section-title mb-4"><i class="fas fa-balance-scale me-2"></i>Compliance Requirements</h4>
+                <div class="compliance-options">
+                    <div class="compliance-option mb-4 p-4 rounded" style="background-color: var(--bg-tertiary);">
+                        <div class="option-content d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="gdpr_compliant" name="gdpr_compliant">
+                                    <label class="form-check-label fs-5 fw-bold" for="gdpr_compliant">GDPR Compliance</label>
+                                </div>
+                                <div class="option-description">
+                                    <p class="text-secondary mb-2">The General Data Protection Regulation (GDPR) applies to businesses that offer goods or services to EU residents.</p>
+                                    <span class="badge bg-success">European Union</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-globe-europe fa-2x text-success opacity-50"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="compliance-option mb-4 p-4 rounded" style="background-color: var(--bg-tertiary);">
+                        <div class="option-content d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="ccpa_compliant" name="ccpa_compliant">
+                                    <label class="form-check-label fs-5 fw-bold" for="ccpa_compliant">CCPA Compliance</label>
+                                </div>
+                                <div class="option-description">
+                                    <p class="text-secondary mb-2">The California Consumer Privacy Act (CCPA) protects the privacy rights of California residents.</p>
+                                    <span class="badge bg-warning">California</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-flag-usa fa-2x text-warning opacity-50"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="compliance-option mb-4 p-4 rounded" style="background-color: var(--bg-tertiary);">
+                        <div class="option-content d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="lgpd_compliant" name="lgpd_compliant">
+                                    <label class="form-check-label fs-5 fw-bold" for="lgpd_compliant">LGPD Compliance</label>
+                                </div>
+                                <div class="option-description">
+                                    <p class="text-secondary mb-2">The Lei Geral de Proteção de Dados (LGPD) is Brazil's data protection law.</p>
+                                    <span class="badge bg-info">Brazil</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-globe-americas fa-2x text-info opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-navigation mt-5 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-lg btn-prev px-4"><i class="fas fa-arrow-left me-2"></i> Previous</button>
+                    <button type="button" class="btn btn-primary btn-lg btn-next px-4">Next <i class="fas fa-arrow-right ms-2"></i></button>
+                </div>
+            </div>
+            
+            <div class="form-section" id="data-collection">
+                <h4 class="section-title mb-4"><i class="fas fa-database me-2"></i>Data Collection</h4>
+                
+                <div class="data-collection-grid row">
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="collects_personal_info" name="collects_personal_info">
+                                <label class="form-check-label fw-bold" for="collects_personal_info">Personal Information</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">Names, emails, addresses, etc.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="collects_cookies" name="collects_cookies">
+                                <label class="form-check-label fw-bold" for="collects_cookies">Cookies</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">Browser cookies and tracking technologies</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="collects_location" name="collects_location">
+                                <label class="form-check-label fw-bold" for="collects_location">Location Data</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">GPS, IP-based location, etc.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="shares_data" name="shares_data">
+                                <label class="form-check-label fw-bold" for="shares_data">Third-Party Sharing</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">Sharing data with partners/vendors</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="uses_analytics" name="uses_analytics">
+                                <label class="form-check-label fw-bold" for="uses_analytics">Analytics Tools</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">Google Analytics, Facebook Pixel, etc.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="social_login" name="social_login">
+                                <label class="form-check-label fw-bold" for="social_login">Social Login</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">Login via Facebook, Google, etc.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="has_newsletter" name="has_newsletter">
+                                <label class="form-check-label fw-bold" for="has_newsletter">Email Newsletter</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">Email marketing subscriptions</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="user_accounts" name="user_accounts">
+                                <label class="form-check-label fw-bold" for="user_accounts">User Accounts</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">User registration and profiles</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="data-option p-3 rounded h-100" style="background-color: var(--bg-tertiary);">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="processes_payments" name="processes_payments">
+                                <label class="form-check-label fw-bold" for="processes_payments">Payment Processing</label>
+                            </div>
+                            <small class="text-secondary d-block mt-2">Credit cards, PayPal, etc.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-navigation mt-5 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-lg btn-prev px-4"><i class="fas fa-arrow-left me-2"></i> Previous</button>
+                    <button type="submit" class="btn btn-primary btn-lg btn-generate px-4">
+                        <i class="fas fa-shield-alt me-2"></i> Generate Privacy Policy
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Additional styling for the progress tracker */
+    .progress-tracker {
+        position: relative;
+    }
+    
+    .progress-steps {
+        position: relative;
+    }
+    
+    .progress-step {
+        text-align: center;
+        position: relative;
+        width: 33%;
+    }
+    
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--bg-tertiary);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        border: 2px solid var(--divider);
+    }
+    
+    .progress-step.active .step-icon {
+        background-color: var(--accent-blue);
+        color: white;
+        border-color: var(--accent-blue);
+    }
+    
+    .step-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .progress-step.active .step-label {
+        color: var(--text-primary);
+    }
+    
+    /* Form section styling */
+    .form-section {
+        display: none;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    .form-section.active {
+        display: block;
+    }
+    
+    /* Button styling */
+    .btn-next, .btn-prev, .btn-generate {
+        transition: all 0.3s ease;
+    }
+    
+    .btn-next:hover, .btn-generate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 113, 227, 0.4);
+    }
+    
+    .btn-prev:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Data option styling */
+    .data-option {
+        transition: all 0.3s ease;
+        border: 1px solid var(--divider);
+    }
+    
+    .data-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-color: var(--accent-blue);
+    }
+    
+    /* Compliance option styling */
+    .compliance-option {
+        transition: all 0.3s ease;
+        border: 1px solid var(--divider);
+    }
+    
+    .compliance-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-color: var(--accent-blue);
+    }
+    
+    /* Increase size of form switches */
+    .form-check-input {
+        width: 45px;
+        height: 24px;
+    }
+    
+    /* Animation for form sections */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.form-section');
+    const progressBar = document.querySelector('.progress-bar');
+    const progressSteps = document.querySelectorAll('.progress-step');
+    
+    // Next button functionality
+    document.querySelectorAll('.btn-next').forEach(button => {
+        button.addEventListener('click', function() {
+            const currentSection = document.querySelector('.form-section.active');
+            const nextSection = currentSection.nextElementSibling;
+            
+            // Validate current section if needed
+            // ...
+            
+            // Move to next section
+            currentSection.classList.remove('active');
+            nextSection.classList.add('active');
+            
+            // Update progress
+            const progress = Array.from(sections).indexOf(nextSection) / (sections.length - 1) * 100;
+            progressBar.style.width = progress + '%';
+            progressBar.setAttribute('aria-valuenow', progress);
+            
+            // Update active step
+            const nextStepIndex = Array.from(sections).indexOf(nextSection);
+            progressSteps.forEach((step, index) => {
+                if (index === nextStepIndex) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+            
+            // Scroll to top of form
+            window.scrollTo({
+                top: document.querySelector('.policy-creator-card').offsetTop - 20,
+                behavior: 'smooth'
+            });
+        });
+    });
+    
+    // Previous button functionality
+    document.querySelectorAll('.btn-prev').forEach(button => {
+        button.addEventListener('click', function() {
+            const currentSection = document.querySelector('.form-section.active');
+            const prevSection = currentSection.previousElementSibling;
+            
+            // Move to previous section
+            currentSection.classList.remove('active');
+            prevSection.classList.add('active');
+            
+            // Update progress
+            const progress = Array.from(sections).indexOf(prevSection) / (sections.length - 1) * 100;
+            progressBar.style.width = progress + '%';
+            progressBar.setAttribute('aria-valuenow', progress);
+            
+            // Update active step
+            const prevStepIndex = Array.from(sections).indexOf(prevSection);
+            progressSteps.forEach((step, index) => {
+                if (index === prevStepIndex) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+            
+            // Scroll to top of form
+            window.scrollTo({
+                top: document.querySelector('.policy-creator-card').offsetTop - 20,
+                behavior: 'smooth'
+            });
+        });
+    });
+    
+    // Add hover effect to data options
+    document.querySelectorAll('.data-option').forEach(option => {
+        option.addEventListener('mouseenter', function() {
+            this.style.borderColor = 'var(--accent-blue)';
+        });
+        
+        option.addEventListener('mouseleave', function() {
+            if (!this.querySelector('input').checked) {
+                this.style.borderColor = 'var(--divider)';
+            }
+        });
+        
+        const checkbox = option.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                option.style.borderColor = 'var(--accent-blue)';
+                option.style.backgroundColor = 'rgba(0, 113, 227, 0.1)';
+            } else {
+                option.style.borderColor = 'var(--divider)';
+                option.style.backgroundColor = 'var(--bg-tertiary)';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

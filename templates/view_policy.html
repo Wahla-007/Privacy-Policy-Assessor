@@ -8,6 +8,9 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap">
             <h2 class="card-title mb-0">{{ policy.website_name }} Privacy Policy</h2>
             <div>
+                <a href="{{ url_for('download_policy', policy_id=policy._id) }}" class="btn btn-primary me-2">
+                    <i class="fas fa-download me-1"></i> Download
+                </a>
                 <button class="btn btn-primary me-2" onclick="window.print()">
                     <i class="fas fa-print me-1"></i> Print
                 </button>
@@ -33,6 +36,10 @@
                 
                 {% if policy.ccpa_compliant %}
                 <span class="badge bg-info me-1">CCPA Compliant</span>
+                {% endif %}
+                
+                {% if policy.lgpd_compliant %}
+                <span class="badge bg-primary me-1">LGPD Compliant</span>
                 {% endif %}
             </div>
         </div>

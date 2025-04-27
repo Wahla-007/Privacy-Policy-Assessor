@@ -1,13 +1,14 @@
-# app.py
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime, timedelta
 from functools import wraps
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-# import markdown
+import markdown
 from markupsafe import Markup
+import tempfile
+import io
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -153,18 +154,26 @@ def create_policy():
         # Compliance options
         gdpr_compliant = request.form.get('gdpr_compliant') == 'on'
         ccpa_compliant = request.form.get('ccpa_compliant') == 'on'
+        lgpd_compliant = request.form.get('lgpd_compliant') == 'on'
         
         # Data collection options
         collects_personal_info = request.form.get('collects_personal_info') == 'on'
         collects_cookies = request.form.get('collects_cookies') == 'on'
+        collects_location = request.form.get('collects_location') == 'on'
         shares_data = request.form.get('shares_data') == 'on'
         uses_analytics = request.form.get('uses_analytics') == 'on'
+        social_login = request.form.get('social_login') == 'on'
+        has_newsletter = request.form.get('has_newsletter') == 'on'
+        user_accounts = request.form.get('user_accounts') == 'on'
+        processes_payments = request.form.get('processes_payments') == 'on'
         
         # Create policy document
         policy_content = generate_privacy_policy(
             website_name, website_url, company_name, contact_email,
-            gdpr_compliant, ccpa_compliant, collects_personal_info,
-            collects_cookies, shares_data, uses_analytics
+            gdpr_compliant, ccpa_compliant, lgpd_compliant,
+            collects_personal_info, collects_cookies, collects_location,
+            shares_data, uses_analytics, social_login, has_newsletter,
+            user_accounts, processes_payments
         )
         
         # Save policy to database
@@ -177,7 +186,8 @@ def create_policy():
             "created_at": datetime.utcnow(),
             "last_updated": datetime.utcnow(),
             "gdpr_compliant": gdpr_compliant,
-            "ccpa_compliant": ccpa_compliant
+            "ccpa_compliant": ccpa_compliant,
+            "lgpd_compliant": lgpd_compliant
         }
         
         result = policies_collection.insert_one(new_policy)
@@ -209,9 +219,60 @@ def view_policy(policy_id):
     
     return render_template('view_policy.html', policy=policy)
 
+@app.route('/policy/<policy_id>/download')
+@login_required
+def download_policy(policy_id):
+    user_id = session.get('user_id')
+    policy = policies_collection.find_one({"_id": ObjectId(policy_id), "user_id": user_id})
+    
+    if not policy:
+        flash('Policy not found or you do not have permission to access it', 'error')
+        return redirect(url_for('my_policies'))
+    
+    # Prepare the content for the text file
+    content = f"{policy['website_name']} Privacy Policy\n\n"
+    content += f"Website: {policy['website_url']}\n"
+    content += f"Company: {policy['company_name']}\n"
+    content += f"Last Updated: {policy['last_updated'].strftime('%B %d, %Y')}\n\n"
+    
+    # Add compliance badges as text
+    compliance = []
+    if policy['gdpr_compliant']:
+        compliance.append("GDPR Compliant")
+    if policy['ccpa_compliant']:
+        compliance.append("CCPA Compliant")
+    if policy['lgpd_compliant']:
+        compliance.append("LGPD Compliant")
+    if compliance:
+        content += "Compliance: " + ", ".join(compliance) + "\n\n"
+    
+    # Add the policy content (strip markdown for plain text)
+    policy_content = policy['content']
+    policy_content = policy_content.replace("#", "").replace("**", "").replace("\n\n", "\n").strip()
+    content += policy_content
+    
+    # Create a temporary file for the text content
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.txt') as temp_file:
+        temp_file.write(content.encode('utf-8'))
+        temp_file_path = temp_file.name
+    
+    # Send the text file for download
+    return send_file(
+        temp_file_path,
+        as_attachment=True,
+        download_name=f"{policy['website_name']}_Privacy_Policy.txt",
+        mimetype='text/plain'
+    )
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_file('static/img/favicon.png', mimetype='image/png')
+
 def generate_privacy_policy(website_name, website_url, company_name, contact_email,
-                          gdpr_compliant, ccpa_compliant, collects_personal_info,
-                          collects_cookies, shares_data, uses_analytics):
+                          gdpr_compliant, ccpa_compliant, lgpd_compliant,
+                          collects_personal_info, collects_cookies, collects_location,
+                          shares_data, uses_analytics, social_login, has_newsletter,
+                          user_accounts, processes_payments):
     """Generate a privacy policy based on provided information"""
     
     # Base policy content
@@ -254,6 +315,13 @@ You can instruct your browser to refuse all cookies or to indicate when a cookie
 
 """
     
+    if collects_location:
+        policy += """### Location Data
+
+We may collect information about your location, such as through GPS, IP address, or other location-based technologies, to provide location-specific services or improve your experience.
+
+"""
+    
     if uses_analytics:
         policy += """### Analytics
 
@@ -261,6 +329,34 @@ We may use third-party Service Providers to monitor and analyze the use of our S
 - Google Analytics
 - Facebook Pixel
 - Other analytics services
+
+"""
+    
+    if social_login:
+        policy += """### Social Media Login
+
+We may offer login services through third-party social media platforms (e.g., Facebook, Google). When you use these services, we may collect information from your social media profile as permitted by your settings on those platforms.
+
+"""
+    
+    if has_newsletter:
+        policy += """### Email Newsletters
+
+If you subscribe to our newsletter, we may collect your email address and other relevant information to send you marketing communications. You may unsubscribe from these communications at any time.
+
+"""
+    
+    if user_accounts:
+        policy += """### User Accounts
+
+If you create an account with us, we collect information necessary to maintain your account, such as your username, password (encrypted), and any profile information you choose to provide.
+
+"""
+    
+    if processes_payments:
+        policy += """### Payment Processing
+
+We may collect payment information (e.g., credit card details) when you make purchases through our Service. This information is processed securely through third-party payment processors.
 
 """
     
@@ -302,6 +398,21 @@ For California residents, the California Consumer Privacy Act (CCPA) provides yo
 - Access your personal information
 - Request deletion of your personal information
 - Not be discriminated against for exercising your CCPA rights
+
+To exercise these rights, please contact us at {contact_email}.
+
+"""
+    
+    if lgpd_compliant:
+        policy += f"""### LGPD Compliance
+
+For users in Brazil, we process your data in accordance with the Lei Geral de Proteção de Dados (LGPD). You have rights similar to those under GDPR, including:
+- Confirmation of the existence of data processing
+- Access to your personal data
+- Correction of incomplete, inaccurate, or outdated data
+- Anonymization, blocking, or deletion of unnecessary or non-compliant data
+- Data portability
+- Information about sharing of your data
 
 To exercise these rights, please contact us at {contact_email}.
 

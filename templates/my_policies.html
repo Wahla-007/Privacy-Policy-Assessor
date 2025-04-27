@@ -3,11 +3,11 @@
 {% block title %}My Policies - Privacy Policy Generator{% endblock %}
 
 {% block content %}
-<div class="card mb-4">
+<div class="card mb-4" style="background-color: #1a1a1a; border: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="card-title mb-0">My Privacy Policies</h2>
-            <a href="{{ url_for('create_policy') }}" class="btn btn-primary">
+            <h2 class="card-title mb-0" style="color: #ffffff; font-weight: 600;">My Privacy Policies</h2>
+            <a href="{{ url_for('create_policy') }}" class="btn btn-primary" style="background-color: #007bff; border: none; transition: all 0.3s ease;">
                 <i class="fas fa-plus me-1"></i> Create New Policy
             </a>
         </div>
@@ -17,27 +17,29 @@
 <div class="row">
     {% for policy in policies %}
     <div class="col-md-6 mb-4">
-        <div class="card policy-card h-100">
+        <div class="card policy-card h-100" style="background-color: #2a2a2a; border: 1px solid #444; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);">
             <div class="card-body">
-                <h5 class="card-title">{{ policy.website_name }}</h5>
-                <p class="card-text text-muted">{{ policy.website_url }}</p>
+                <h5 class="card-title" style="color: #e0e0e0; font-weight: 500;">{{ policy.website_name }}</h5>
+                <p class="card-text" style="color: #b0b0b0; font-size: 0.95rem; word-break: break-all;">{{ policy.website_url }}</p>
                 <p class="card-text">
-                    <small class="text-muted">
+                    <small style="color: #a0a0a0;">
                         <i class="fas fa-calendar me-1"></i> Created: {{ policy.created_at.strftime('%b %d, %Y') }}
                     </small>
                 </p>
                 <div>
                     {% if policy.gdpr_compliant %}
-                    <span class="badge bg-success me-1">GDPR</span>
+                    <span class="badge bg-success me-1" style="background-color: #28a745 !important; color: #fff; padding: 5px 10px;">GDPR</span>
                     {% endif %}
-                    
                     {% if policy.ccpa_compliant %}
-                    <span class="badge bg-info me-1">CCPA</span>
+                    <span class="badge bg-info me-1" style="background-color: #17a2b8 !important; color: #fff; padding: 5px 10px;">CCPA</span>
+                    {% endif %}
+                    {% if policy.lgpd_compliant %}
+                    <span class="badge bg-primary me-1" style="background-color: #007bff !important; color: #fff; padding: 5px 10px;">LGPD</span>
                     {% endif %}
                 </div>
             </div>
             <div class="card-footer bg-transparent border-0">
-                <a href="{{ url_for('view_policy', policy_id=policy._id) }}" class="btn btn-primary btn-sm">
+                <a href="{{ url_for('view_policy', policy_id=policy._id) }}" class="btn btn-primary btn-sm" style="background-color: #007bff; border: none; transition: all 0.3s ease;">
                     <i class="fas fa-eye me-1"></i> View
                 </a>
             </div>
@@ -45,13 +47,40 @@
     </div>
     {% else %}
     <div class="col-12">
-        <div class="card">
+        <div class="card" style="background-color: #1a1a1a; border: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
             <div class="card-body text-center">
-                <p class="mb-3">You haven't created any privacy policies yet.</p>
-                <a href="{{ url_for('create_policy') }}" class="btn btn-primary">Create Your First Policy</a>
+                <p class="mb-3" style="color: #e0e0e0; font-size: 1.1rem;">You haven't created any privacy policies yet.</p>
+                <a href="{{ url_for('create_policy') }}" class="btn btn-primary" style="background-color: #007bff; border: none; transition: all 0.3s ease;">Create Your First Policy</a>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
+
+<style>
+    /* Hover effect for policy cards */
+    .policy-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        border-color: #666;
+    }
+
+    /* Hover effect for buttons */
+    .btn-primary:hover {
+        background-color: #0056b3 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+
+    /* Smooth transition for text */
+    .card-title, .card-text, small {
+        transition: color 0.3s ease;
+    }
+
+    /* Ensure badges are readable */
+    .badge {
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+</style>
 {% endblock %}

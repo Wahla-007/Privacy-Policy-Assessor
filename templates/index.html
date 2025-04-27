@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Privacy Policy Generator - Create Compliant Privacy Policies{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center text-center">
+    <div class="col-md-10">
+        <div class="card hero-card p-5 mt-5">
+            <div class="hero-content">
+                <h1 class="display-4 mb-4">Privacy Policy Generator</h1>
+                <p class="lead mb-4">Create professional, compliant privacy policies for your websites and applications in minutes. GDPR, CCPA, and other regulations supported.</p>
+                
+                <div class="hero-features mb-5">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="feature-item">
+                                <i class="fas fa-bolt feature-icon"></i>
+                                <h5>Quick & Easy</h5>
+                                <p>Generate a policy in minutes</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle feature-icon"></i>
+                                <h5>Fully Compliant</h5>
+                                <p>GDPR, CCPA, LGPD ready</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-item">
+                                <i class="fas fa-sync feature-icon"></i>
+                                <h5>Always Updated</h5>
+                                <p>Keep up with regulations</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="cta-buttons">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </a>
+                    <a href="{{ url_for('signup') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>Sign Up
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hero-card {
+        background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+        border: 1px solid var(--divider);
+        /* Modified animation to ensure visibility */
+        animation: fadeIn 0.8s ease forwards, slideUp 0.8s ease forwards;
+    }
+    
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .feature-item {
+        padding: 20px 10px;
+        transition: all 0.3s ease;
+        /* Ensure initial visibility */
+        opacity: 1;
+    }
+    
+    .feature-item:hover {
+        transform: translateY(-5px);
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        color: var(--accent-blue);
+        margin-bottom: 15px;
+    }
+    
+    .cta-buttons {
+        margin-top: 20px;
+        /* Ensure initial visibility */
+        opacity: 1;
+    }
+    
+    .btn-outline-light {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: var(--text-primary);
+    }
+    
+    .btn-outline-light:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: var(--text-primary);
+    }
+    
+    /* Fixed animations to ensure visibility */
+    @keyframes fadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        0% { transform: translateY(20px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Removed the problematic animations that were causing disappearing content */
+    /* Add simple animations that won't cause disappearing */
+    .display-4, .lead {
+        animation: fadeIn 1s ease forwards;
+    }
+    
+    .feature-item {
+        animation: fadeIn 1s ease forwards;
+    }
+    
+    .feature-item:nth-child(1) {
+        animation-delay: 0.2s;
+    }
+    
+    .feature-item:nth-child(2) {
+        animation-delay: 0.3s;
+    }
+    
+    .feature-item:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+    
+    .cta-buttons {
+        animation: fadeIn 1s ease forwards;
+        animation-delay: 0.5s;
+    }
+</style>
+{% endblock %}

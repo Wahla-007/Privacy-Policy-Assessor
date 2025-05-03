@@ -9,6 +9,10 @@ import markdown
 from markupsafe import Markup
 import tempfile
 import io
+from reportlab.lib.pagesizes import letter  # Added for PDF generation
+from reportlab.pdfgen import canvas  # Added for PDF generation
+from reportlab.lib import colors  # Added for PDF generation
+from reportlab.lib.units import inch  # Added for PDF generation
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -229,7 +233,7 @@ def download_policy(policy_id):
         flash('Policy not found or you do not have permission to access it', 'error')
         return redirect(url_for('my_policies'))
     
-    # Prepare the content for the text file
+    # Prepare the content for the PDF
     content = f"{policy['website_name']} Privacy Policy\n\n"
     content += f"Website: {policy['website_url']}\n"
     content += f"Company: {policy['company_name']}\n"
@@ -251,17 +255,44 @@ def download_policy(policy_id):
     policy_content = policy_content.replace("#", "").replace("**", "").replace("\n\n", "\n").strip()
     content += policy_content
     
-    # Create a temporary file for the text content
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.txt') as temp_file:
-        temp_file.write(content.encode('utf-8'))
-        temp_file_path = temp_file.name
+    # Create a PDF in memory using reportlab
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    p.setFont("Helvetica", 12)
     
-    # Send the text file for download
+    # Set margins and starting position
+    width, height = letter
+    margin = 1 * inch
+    x = margin
+    y = height - margin
+    max_y = margin
+    
+    # Split content into lines
+    lines = content.split('\n')
+    
+    # Draw each line on the PDF
+    for line in lines:
+        if y < max_y:  # If we run out of space, create a new page
+            p.showPage()
+            p.setFont("Helvetica", 12)
+            y = height - margin
+        
+        p.drawString(x, y, line)
+        y -= 14  # Move down for the next line (line spacing)
+    
+    # Finalize the PDF
+    p.showPage()
+    p.save()
+    
+    # Prepare the buffer for sending
+    buffer.seek(0)
+    
+    # Send the PDF file for download
     return send_file(
-        temp_file_path,
+        buffer,
         as_attachment=True,
-        download_name=f"{policy['website_name']}_Privacy_Policy.txt",
-        mimetype='text/plain'
+        download_name=f"{policy['website_name']}_Privacy_Policy.pdf",
+        mimetype='application/pdf'
     )
 
 @app.route('/favicon.ico')

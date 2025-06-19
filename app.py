@@ -12,14 +12,20 @@ import io
 from reportlab.lib.pagesizes import letter  # Added for PDF generation
 from reportlab.pdfgen import canvas  # Added for PDF generation
 from reportlab.lib import colors  # Added for PDF generation
-from reportlab.lib.units import inch  # Added for PDF generation
+from reportlab.lib.units import inch  
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.permanent_session_lifetime = timedelta(days=7)
 
 # MongoDB connection
-client = MongoClient('mongodb://localhost:27017/')
+# client = MongoClient('mongodb://localhost:27017/')
+## Now this is for azure 
+
+client = MongoClient(os.environ.get("MONGO_URI"))
+
 db = client['privacy_policy_generator']
 users_collection = db['users']
 policies_collection = db['policies']
@@ -233,13 +239,83 @@ def download_policy(policy_id):
         flash('Policy not found or you do not have permission to access it', 'error')
         return redirect(url_for('my_policies'))
     
-    # Prepare the content for the PDF
-    content = f"{policy['website_name']} Privacy Policy\n\n"
-    content += f"Website: {policy['website_url']}\n"
-    content += f"Company: {policy['company_name']}\n"
-    content += f"Last Updated: {policy['last_updated'].strftime('%B %d, %Y')}\n\n"
+    # Create a PDF in memory using reportlab
+    buffer = io.BytesIO()
     
-    # Add compliance badges as text
+    # Create a SimpleDocTemplate with 2px border
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=inch,
+        rightMargin=inch,
+        topMargin=inch,
+        bottomMargin=inch
+    )
+    
+    # Define styles
+    styles = getSampleStyleSheet()
+    
+    # Create custom styles
+    title_style = ParagraphStyle(
+        'Title',
+        parent=styles['Title'],
+        fontSize=18,
+        spaceAfter=12
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'Subtitle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=8
+    )
+    
+    normal_style = ParagraphStyle(
+        'Normal',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceBefore=6
+    )
+    
+    heading1_style = ParagraphStyle(
+        'Heading1',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceBefore=12,
+        spaceAfter=6
+    )
+    
+    heading2_style = ParagraphStyle(
+        'Heading2',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceBefore=10,
+        spaceAfter=4
+    )
+    
+    heading3_style = ParagraphStyle(
+        'Heading3',
+        parent=styles['Heading3'],
+        fontSize=12,
+        spaceBefore=8,
+        spaceAfter=4
+    )
+    
+    # Prepare document elements
+    elements = []
+    
+    # Add main title
+    elements.append(Paragraph(f"{policy['website_name']} Privacy Policy", title_style))
+    elements.append(Spacer(1, 0.2 * inch))
+    
+    # Add metadata
+    info_data = [
+        ["Website:", policy['website_url']],
+        ["Company:", policy['company_name']],
+        ["Last Updated:", policy['last_updated'].strftime('%B %d, %Y')]
+    ]
+    
+    # Add compliance badges
     compliance = []
     if policy['gdpr_compliant']:
         compliance.append("GDPR Compliant")
@@ -247,42 +323,71 @@ def download_policy(policy_id):
         compliance.append("CCPA Compliant")
     if policy['lgpd_compliant']:
         compliance.append("LGPD Compliant")
+    
     if compliance:
-        content += "Compliance: " + ", ".join(compliance) + "\n\n"
+        info_data.append(["Compliance:", ", ".join(compliance)])
     
-    # Add the policy content (strip markdown for plain text)
+    # Create table with metadata
+    info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    
+    elements.append(info_table)
+    elements.append(Spacer(1, 0.3 * inch))
+    
+    # Process policy content
     policy_content = policy['content']
-    policy_content = policy_content.replace("#", "").replace("**", "").replace("\n\n", "\n").strip()
-    content += policy_content
     
-    # Create a PDF in memory using reportlab
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    p.setFont("Helvetica", 12)
+    # Split content by lines to process markdown headings
+    lines = policy_content.split('\n')
     
-    # Set margins and starting position
-    width, height = letter
-    margin = 1 * inch
-    x = margin
-    y = height - margin
-    max_y = margin
-    
-    # Split content into lines
-    lines = content.split('\n')
-    
-    # Draw each line on the PDF
-    for line in lines:
-        if y < max_y:  # If we run out of space, create a new page
-            p.showPage()
-            p.setFont("Helvetica", 12)
-            y = height - margin
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
         
-        p.drawString(x, y, line)
-        y -= 14  # Move down for the next line (line spacing)
+        # Process headers
+        if line.startswith('# '):
+            elements.append(Paragraph(line[2:], heading1_style))
+        elif line.startswith('## '):
+            elements.append(Paragraph(line[3:], heading2_style))
+        elif line.startswith('### '):
+            elements.append(Paragraph(line[4:], heading3_style))
+        # Process bullet points
+        elif line.startswith('- '):
+            elements.append(Paragraph("• " + line[2:], normal_style))
+        # Process normal text
+        elif line:
+            # Remove markdown bold
+            cleaned_line = line.replace('**', '')
+            elements.append(Paragraph(cleaned_line, normal_style))
+        # Add a small spacer for empty lines to maintain paragraph breaks
+        elif i > 0 and lines[i-1].strip():
+            elements.append(Spacer(1, 0.1 * inch))
+        
+        i += 1
     
-    # Finalize the PDF
-    p.showPage()
-    p.save()
+    # Build the PDF with a border
+    def add_border(canvas, doc):
+        canvas.saveState()
+        canvas.setStrokeColor(colors.black)
+        canvas.setLineWidth(2)
+        canvas.rect(
+            doc.leftMargin - 10,
+            doc.bottomMargin - 10,
+            doc.width + 20,
+            doc.height + 20,
+            stroke=1,
+            fill=0
+        )
+        canvas.restoreState()
+    
+    # Build PDF
+    doc.build(elements, onFirstPage=add_border, onLaterPages=add_border)
     
     # Prepare the buffer for sending
     buffer.seek(0)
@@ -461,5 +566,9 @@ If you have any questions about this Privacy Policy, please contact us at:
     
     return policy
 
+# if __name__ == '__main__':
+#     app.run(debug=True)
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
